@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoiceIQ — AI Invoice Processing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3349;
+      --accent: #6366f1; --accent-glow: rgba(99,102,241,0.15);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --text: #e2e8f0; --muted: #64748b;
+      --mono: "JetBrains Mono", monospace; --sans: "Inter", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .logo { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .logo h1 { font-size: 1.25rem; font-weight: 700; }
+    .logo span { color: var(--accent); }
+    .badge { font-size: 0.65rem; font-weight: 600; background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent); padding: 0.2rem 0.5rem; border-radius: 999px; text-transform: uppercase; }
+    .main { display: grid; grid-template-columns: 400px 1fr; min-height: calc(100vh - 65px); }
+    .sidebar { border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .content { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .card-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 1rem; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+    .upload-zone:hover { border-color: var(--accent); background: var(--accent-glow); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .upload-zone p { font-size: 0.9rem; color: var(--muted); }
+    .file-selected { margin-top: 0.75rem; font-size: 0.8rem; font-family: var(--mono); color: var(--accent); background: var(--accent-glow); padding: 0.4rem 0.75rem; border-radius: 6px; display: none; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem; }
+    input, select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.9rem; color: var(--text); font-family: var(--sans); font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .btn-process { width: 100%; padding: 0.85rem; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-process:hover { background: #5558e3; }
+    .btn-process:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pipeline { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .agent-step { padding: 0.4rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; background: #22263a; border: 1px solid var(--border); transition: all 0.3s; }
+    .agent-step.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+    .agent-step.done { background: rgba(16,185,129,0.1); border-color: var(--success); color: var(--success); }
+    .arrow { color: var(--muted); font-size: 0.75rem; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .data-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .data-row:last-child { border-bottom: none; }
+    .data-label { color: var(--muted); }
+    .data-value { font-family: var(--mono); font-size: 0.82rem; }
+    .flag { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; border-radius: 8px; font-size: 0.82rem; margin-bottom: 0.5rem; }
+    .flag.error { background: rgba(239,68,68,0.1); border: 1px solid var(--danger); color: #fca5a5; }
+    .flag.warning { background: rgba(245,158,11,0.1); border: 1px solid var(--warning); color: #fcd34d; }
+    .flag.success { background: rgba(16,185,129,0.1); border: 1px solid var(--success); color: #6ee7b7; }
+    .status-pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 999px; font-weight: 600; font-size: 0.85rem; }
+    .status-approved { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid var(--success); }
+    .status-pending { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid var(--warning); }
+    .status-rejected { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 0.6rem 0.75rem; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; }
+    td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .loader { display: none; text-align: center; padding: 3rem; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { color: var(--muted); font-size: 0.88rem; }
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .tab { padding: 0.6rem 1.1rem; font-size: 0.85rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .amount-display { font-size: 2.5rem; font-weight: 700; font-family: var(--mono); }
+    .amount-display .currency { font-size: 1.2rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧾</div>
+    <h1>Invoice<span>IQ</span></h1>
+  </div>
+  <span class="badge">AI Agent · Multi-Agent Pipeline</span>
+</header>
+<div class="main">
+  <aside class="sidebar">
+    <div class="card">
+      <div class="card-title">Upload Invoice</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
+        <div class="upload-icon">📄</div>
+        <p><strong>Click to upload</strong> or drag & drop</p>
+        <p>PDF, PNG, JPG supported</p>
+        <div class="file-selected" id="fileSelected"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Business Rules</div>
+      <div class="form-group">
+        <label>Department</label>
+        <select id="department">
+          <option>Engineering</option><option>Marketing</option>
+          <option>Operations</option><option>Finance</option>
+          <option>HR</option><option>General</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Budget Limit (₹)</label>
+        <input type="number" id="budgetLimit" value="50000" min="0" step="1000" />
+      </div>
+    </div>
+    <button class="btn-process" id="processBtn" disabled>⚡ Process Invoice</button>
+    <div class="card">
+      <div class="card-title">Agent Pipeline</div>
+      <div class="pipeline">
+        <div class="agent-step" id="step-extract">🔍 Extractor</div>
+        <div class="arrow">→</div>
+        <div class="agent-step" id="step-validate">✅ Validator</div>
+        <div class="arrow">→</div>
+        <div class="agent-step" id="step-route">📬 Router</div>
+      </div>
+    </div>
+  </aside>
+  <main class="content">
+    <div class="tabs">
+      <div class="tab active" data-tab="result">Result</div>
+      <div class="tab" data-tab="history">History</div>
+    </div>
+    <div class="tab-content active" id="tab-result">
+      <div class="loader" id="loader"><div class="spinner"></div><p id="loaderText">Running agents...</p></div>
+      <div class="empty-state" id="emptyState"><div class="icon">🤖</div><p>Upload an invoice to start the AI agent pipeline</p></div>
+      <div id="resultContent" style="display:none;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem;">INVOICE AMOUNT</div>
+            <div class="amount-display"><span class="currency" id="resultCurrency">₹</span><span id="resultAmount">—</span></div>
+            <div style="margin-top:0.75rem;" id="resultStatusPill"></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem;">ROUTED TO</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="resultRoutedTo">—</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;" id="resultAction">—</div>
+          </div>
+        </div>
+        <div class="result-grid">
+          <div class="card"><div class="card-title">Extracted Data</div><div id="extractedData"></div></div>
+          <div class="card"><div class="card-title">Validation Flags</div><div id="flagsContainer"></div></div>
+        </div>
+        <div class="card" id="lineItemsCard" style="display:none;">
+          <div class="card-title">Line Items</div>
+          <table><thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+          <tbody id="lineItemsBody"></tbody></table>
+        </div>
+        <div class="card">
+          <div class="card-title">Routing Decision</div>
+          <div id="routingReason" style="font-size:0.88rem;color:var(--muted);line-height:1.6;"></div>
+          <div id="emailSubject" style="margin-top:0.75rem;font-family:var(--mono);font-size:0.78rem;color:var(--accent);padding:0.5rem 0.75rem;background:var(--accent-glow);border-radius:6px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-history">
+      <div class="card"><div class="card-title">Processed Invoices</div><div id="historyContainer"><div class="empty-state" style="padding:2rem;"><p>No invoices processed yet</p></div></div></div>
+    </div>
+  </main>
+</div>
+<script>
+  let selectedFile = null;
+  const fileInput = document.getElementById("fileInput");
+  const fileSelected = document.getElementById("fileSelected");
+  const processBtn = document.getElementById("processBtn");
+  const uploadZone = document.getElementById("uploadZone");
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) {
+      selectedFile = fileInput.files[0];
+      fileSelected.textContent = "📎 " + selectedFile.name;
+      fileSelected.style.display = "block";
+      processBtn.disabled = false;
+    }
+  });
+
+  uploadZone.addEventListener("dragover", e => { e.preventDefault(); uploadZone.classList.add("dragging"); });
+  uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragging"));
+  uploadZone.addEventListener("drop", e => {
+    e.preventDefault(); uploadZone.classList.remove("dragging");
+    const file = e.dataTransfer.files[0];
+    if (file) { selectedFile = file; fileSelected.textContent = "📎 " + file.name; fileSelected.style.display = "block"; processBtn.disabled = false; }
+  });
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+      if (tab.dataset.tab === "history") loadHistory();
+    });
+  });
+
+  function setPipelineStep(step) {
+    const steps = ["extract", "validate", "route"];
+    const idx = steps.indexOf(step);
+    steps.forEach((s, i) => {
+      const el = document.getElementById("step-" + s);
+      el.className = "agent-step" + (i < idx ? " done" : i === idx ? " active" : "");
+    });
+  }
+
+  processBtn.addEventListener("click", async () => {
+    if (!selectedFile) return;
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("budget_limit", document.getElementById("budgetLimit").value);
+    formData.append("department", document.getElementById("department").value);
+    document.getElementById("emptyState").style.display = "none";
+    document.getElementById("resultContent").style.display = "none";
+    document.getElementById("loader").style.display = "block";
+    processBtn.disabled = true;
+    const loaderText = document.getElementById("loaderText");
+    const steps = [["extract","🔍 Extraction Agent reading invoice..."],["validate","✅ Validation Agent checking rules..."],["route","📬 Routing Agent deciding approval path..."]];
+    for (const [step, text] of steps) {
+      loaderText.textContent = text; setPipelineStep(step);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    try {
+      const res = await fetch("/api/process-invoice", { method: "POST", body: formData });
+      const data = await res.json();
+      document.getElementById("loader").style.display = "none";
+      if (data.error) { alert("Error: " + data.error); document.getElementById("emptyState").style.display = "block"; return; }
+      ["extract","validate","route"].forEach(s => document.getElementById("step-" + s).className = "agent-step done");
+      renderResult(data);
+    } catch (err) {
+      document.getElementById("loader").style.display = "none";
+      document.getElementById("emptyState").style.display = "block";
+      alert("Error: " + err.message);
+    } finally { processBtn.disabled = false; }
+  });
+
+  function renderResult(data) {
+    const { extracted, validation, routing, status } = data;
+    document.getElementById("resultAmount").textContent = Number(extracted.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    document.getElementById("resultCurrency").textContent = extracted.currency === "INR" ? "₹" : (extracted.currency || "₹");
+    const pillMap = { approved: ["status-approved","✅ Auto-Approved"], pending_review: ["status-pending","⏳ Pending Review"], rejected: ["status-rejected","❌ Rejected"] };
+    const [cls, label] = pillMap[status] || ["status-pending", status];
+    document.getElementById("resultStatusPill").innerHTML = `<span class="status-pill ${cls}">${label}</span>`;
+    document.getElementById("resultRoutedTo").textContent = routing.routed_to || "—";
+    document.getElementById("resultAction").textContent = (routing.action || "").replace(/_/g, " ").toUpperCase();
+    document.getElementById("routingReason").textContent = routing.reason || "—";
+    document.getElementById("emailSubject").textContent = "✉ " + (routing.email_subject || "");
+    const fields = [["Vendor", extracted.vendor],["Invoice #", extracted.invoice_number],["Date", extracted.date],["Tax", extracted.tax != null ? "₹" + Number(extracted.tax).toLocaleString() : "—"],["Payment Terms", extracted.payment_terms],["Confidence", extracted.confidence ? (extracted.confidence * 100).toFixed(0) + "%" : "—"]];
+    document.getElementById("extractedData").innerHTML = fields.map(([k,v]) => `<div class="data-row"><span class="data-label">${k}</span><span class="data-value">${v || "—"}</span></div>`).join("");
+    const flags = validation.flags || [];
+    document.getElementById("flagsContainer").innerHTML = flags.length === 0 ? `<div class="flag success">✅ All checks passed</div>` : flags.map(f => `<div class="flag ${f.type}">${f.type==="error"?"❌":f.type==="warning"?"⚠️":"ℹ️"} ${f.message}</div>`).join("");
+    const lineItems = extracted.line_items || [];
+    if (lineItems.length > 0) {
+      document.getElementById("lineItemsCard").style.display = "block";
+      document.getElementById("lineItemsBody").innerHTML = lineItems.map(item => `<tr><td>${item.description||"—"}</td><td>${item.quantity??""}</td><td>${item.unit_price!=null?"₹"+Number(item.unit_price).toLocaleString():""}</td><td>${item.total!=null?"₹"+Number(item.total).toLocaleString():""}</td></tr>`).join("");
+    }
+    document.getElementById("resultContent").style.display = "block";
+  }
+
+  async function loadHistory() {
+    const res = await fetch("/api/reports");
+    const data = await res.json();
+    const el = document.getElementById("historyContainer");
+    if (!data.length) { el.innerHTML = `<div class="empty-state" style="padding:2rem;"><p>No invoices processed yet</p></div>`; return; }
+    el.innerHTML = `<table><thead><tr><th>Vendor</th><th>Amount</th><th>Date</th><th>Status</th><th>Routed To</th></tr></thead><tbody>${data.map(r=>`<tr><td>${r.vendor}</td><td style="font-family:var(--mono);">₹${Number(r.amount).toLocaleString()}</td><td>${r.date}</td><td><span class="status-pill ${r.status==="approved"?"status-approved":r.status==="rejected"?"status-rejected":"status-pending"}" style="font-size:0.75rem;padding:0.3rem 0.6rem;">${r.status}</span></td><td>${r.routed_to}</td></tr>`).join("")}</tbody></table>`;
+  }
+</script>
+</body>
+</html>

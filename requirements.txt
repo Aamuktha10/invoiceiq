@@ -1,0 +1,4 @@
+flask
+anthropic
+werkzeug
+python-dotenv
