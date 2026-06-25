@@ -10,8 +10,7 @@ class ExtractionAgent:
     def __init__(self):
         api_key = os.environ.get("GROQ_API_KEY")
         print(f"GROQ_API_KEY loaded: {bool(api_key)}")
-        self.client = Groq(api_key=api_key)
-
+        self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     def _read_file_as_base64(self, filepath):
         with open(filepath, "rb") as f:
             data = base64.standard_b64encode(f.read()).decode("utf-8")
