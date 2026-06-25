@@ -1,10 +1,8 @@
 import os
 import base64
 import json
-from dotenv import load_dotenv
 from groq import Groq
 
-load_dotenv()
 
 class ExtractionAgent:
     def __init__(self):
