@@ -8,7 +8,9 @@ load_dotenv()
 
 class ExtractionAgent:
     def __init__(self):
-        self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        api_key = os.environ.get("GROQ_API_KEY")
+        print(f"GROQ_API_KEY loaded: {bool(api_key)}")
+        self.client = Groq(api_key=api_key)
 
     def _read_file_as_base64(self, filepath):
         with open(filepath, "rb") as f:
